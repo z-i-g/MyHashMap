@@ -1,7 +1,8 @@
-import com.sun.deploy.security.SelectableSecurityManager;
-
-import java.util.HashMap;
-
+/**
+ * Класс реализации собственной HashMap
+ * @autor Айрат Загидуллин
+ * @version 1.0
+ */
 public class MyHashMap {
 
     private int defaultCapacity;
@@ -14,7 +15,9 @@ public class MyHashMap {
         table = new Entry[defaultCapacity];
     }
 
-
+    /**
+     * Внутренний класс, для хранения пар ключ-значение
+     */
     public class Entry {
         Object key;
         Object value;
@@ -29,64 +32,66 @@ public class MyHashMap {
         }
     }
 
+    /**
+     * Проверка наличия переданног ключа
+     * @param key - ключ
+     * @return true если переданный ключ есть в коллекции
+     */
     public boolean containsKey(Object key) {
-        Entry e = getEntry(hash(key), key);
-        return e != null;
-//        int hash = hash(key);
-//        Entry e = table[indexFor(hash, defaultCapacity)];
-//        do {
-//            if(e != null) {
-//                if((e.key == key || key.equals(e.key))) {
-//                    return true;
-//                } else {
-//                    return false;
-//                }
-//            } else
-//                return false;
-//        } while(e.next != null);
-
+        Entry entry = getEntry(hash(key), key);
+        return entry != null;
     }
 
-    // удаление элемента из коллекции
+    /**
+     * Удаление элемента по ключу
+     * @param key - ключ
+     * @return true если удаение успешно
+     */
     public boolean remove(Object key) {
         int hash = hash(key);
         int index = indexFor(hash, defaultCapacity);
-        Entry e = table[indexFor(hash, defaultCapacity)];
-        if(e != null) {
-            return removeEntry(e, key, index);
-        } else
+        Entry entry = table[indexFor(hash, defaultCapacity)];
+        if(entry != null) {
+            return removeEntry(entry, key, index);
+        } else {
             return false;
+        }
     }
 
-    // true если удаление успешно
-    private boolean removeEntry(Entry e, Object key, int index) {
-        Entry prev = e;
-        Entry current = e;
-        while(!( (key.equals((current.key))))) {
-            if (current.next == null) { //если элемент не найден
+    private boolean removeEntry(Entry entry, Object key, int index) {
+        Entry prev = entry;
+        Entry current = entry;
+        while(!(key.equals(current.key))) {
+            if (current.next == null) {
                 return false;
             } else {
                 prev = current;
                 current = current.next;
             }
         }
-        if(e == current) {
-//            System.out.println("removed finished = " + current.key);
-            e = e.next;
-            table[index] = e;
+        if(entry == current) {
+            entry = entry.next;
+            table[index] = entry;
+            count--;
             return true;
         } else {
             prev.next = current.next;
-            return true;
+            count--;
         }
+        return true;
     }
 
-    // добавление в коллекцию
+    /**
+     * Добавление элемента в коллекцию, если key одинаковые, то value перезаписывается
+     * @param key - ключ
+     * @param value - значение
+     * @exception IllegalArgumentException - если ключ null
+     */
     public void put(Object key, Object value) {
         if (key == null) {
             throw new IllegalArgumentException("Ключ не может быть null!");
             }
-
+        
         if((defaultCapacity * loadFactor) < count) {
             transfer(resize());
         }
@@ -94,100 +99,97 @@ public class MyHashMap {
         int hash = hash(key);
         int tableIndex = indexFor(hash, defaultCapacity);
 
-        // если ячейка не пустая
         if(table[tableIndex] != null) {
-            Entry e = table[tableIndex];
-            // проходим по всему списку
-            while(e != null) {
-                //если есть совпадения, элемент перезаписывается
-                if(e.hash == hash && (e.key == key || key.equals(e.key))) {
-                    e.value = value;
+            for(Entry entry = table[tableIndex]; entry != null; entry = entry.next) {
+                if(entry.hash == hash && (entry.key == key || key.equals(entry.key))) {
+                    entry.value = value;
                 } else {
                     addEntry(hash, key, value, tableIndex, true);
                 }
-                e = e.next;
             }
         } else {
             addEntry(hash, key, value, tableIndex, true);
-
         }
     }
 
-    // создание нового массива x2
+    /**
+     * Увеличение размера коллекции при loadFactor > 0.75
+     * @return Entry[] - массив с увеличенным размером
+     */
     private Entry[] resize () {
         defaultCapacity *= 2;
-        Entry[] newTable;
-        return newTable = new Entry[defaultCapacity];
+        return new Entry[defaultCapacity];
     }
 
-    // копирование Entry в новый массив
+    /**
+     * Копирует элементы в newTable[]
+     * @param newTable - новый массив
+     */
     private void transfer(Entry[] newTable) {
         Entry[] tempTable = table;
         table = newTable;
-        Entry e;
+        Entry entry;
+
         for(int i = 0; i < tempTable.length; i++ ) {
             if(tempTable[i] != null) {
                 int tableIndex = indexFor(tempTable[i].hash, defaultCapacity);
-                e = tempTable[i];
-                if(e.next == null) {
+                entry = tempTable[i];
+                if(entry.next == null) {
                     table[tableIndex] = tempTable[i];
                 } else {
-                    while(e != null) {
-                        int newIndex = indexFor(e.hash, defaultCapacity);
-                        addEntry(e.hash, e.key
-                                , e.value, newIndex, false);
-                        e = e.next;
+                    for(Entry entryFor = entry; entry != null; entry = entry.next) {
+                        int newIndex = indexFor(entryFor.hash, defaultCapacity);
+                        addEntry(entryFor.hash, entryFor.key
+                                , entryFor.value, newIndex, false);
                     }
                 }
-
             }
         }
     }
 
-    // возвращает value
+    /**
+     * Получение value ко key, если value не найден, то null
+     * @param key - ключ
+     * @return value
+     */
     public Object get(Object key) {
         int hash = hash(key);
-        Entry e;
-        return (e = getEntry(hash, key)) == null ? null : e.value;
+        Entry entry;
+        return (entry = getEntry(hash, key)) == null ? null : entry.value;
     }
 
-    // возвращает Entry
     private Entry getEntry(int hash, Object key) {
-        Entry e;
         int index = indexFor(hash, defaultCapacity);
-        e = table[index];
-        while (e != null) {
-            if(e.hash == hash && (e.key == key || key.equals(e.key))) {
-                return e;
-            } else {
-                e = e.next;
+
+        for (Entry entry = table[index]; entry != null ; entry = entry.next) {
+            if(entry.hash == hash && (entry.key == key || key.equals(entry.key))) {
+                return entry;
             }
         }
         return null;
     }
 
-
-    // добавляет Entry
     private void addEntry(int hash, Object key, Object value, int index, boolean flag) {
-        Entry e = table[index];
-        table[index] = new Entry(hash, key, value, e);
+        Entry entry = table[index];
+        table[index] = new Entry(hash, key, value, entry);
         if(flag) {
             count++;
         }
     }
 
-    // вычисление индекса в массиве Entry
     private int indexFor(int hash, int tableLenght) {
         return hash & (tableLenght - 1);
     }
 
-    // вычисление hashcode
     private int hash(Object key) {
         int hash = key.hashCode();
         return 31 * hash + 17;
     }
 
-    // возвращает количество элементов в hashmap
+    /**
+     * Количество элементов в коллекции
+     * @return count - количество
+     */
     public int size() {
         return count;
     }
